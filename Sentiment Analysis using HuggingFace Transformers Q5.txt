@@ -1,0 +1,14 @@
+from transformers import pipeline
+
+# 1. Load pre-trained sentiment-analysis pipeline
+sentiment_pipeline = pipeline("sentiment-analysis")
+
+# 2. Input sentence
+sentence = "Despite the high price, the performance of the new MacBook is outstanding."
+
+# 3. Get prediction
+result = sentiment_pipeline(sentence)[0]
+
+# 4. Print result
+print(f"Sentiment: {result['label']}")
+print(f"Confidence Score: {result['score']:.4f}")

@@ -1,0 +1,68 @@
+import tensorflow as tf
+import numpy as np
+
+# 1. Load dataset (smaller slice for speed)
+url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
+text_path = tf.keras.utils.get_file("shakespeare.txt", url)
+text = open(text_path, 'rb').read().decode(encoding='utf-8')
+text = text[:100000]  # use only first 100k chars
+print(f"Length of text: {len(text)} characters")
+
+# 2. Preprocess
+vocab = sorted(set(text))
+vocab_size = len(vocab)
+char2idx = {u:i for i, u in enumerate(vocab)}
+idx2char = np.array(vocab)
+text_as_int = np.array([char2idx[c] for c in text])
+
+# 3. Prepare training data
+seq_length = 100
+char_dataset = tf.data.Dataset.from_tensor_slices(text_as_int)
+sequences = char_dataset.batch(seq_length+1, drop_remainder=True)
+
+def split_input_target(chunk):
+    return chunk[:-1], chunk[1:]
+
+dataset = sequences.map(split_input_target).shuffle(10000).batch(32, drop_remainder=True)
+
+# 4. Build the model
+embedding_dim = 128
+rnn_units = 256
+
+def build_model(vocab_size, embedding_dim, rnn_units):
+    return tf.keras.Sequential([
+        tf.keras.layers.Embedding(vocab_size, embedding_dim),
+        tf.keras.layers.LSTM(rnn_units, return_sequences=True),
+        tf.keras.layers.Dense(vocab_size)
+    ])
+
+model = build_model(vocab_size, embedding_dim, rnn_units)
+model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
+
+# 5. Train the model
+model.fit(dataset, epochs=2)
+
+# 6. Text generation function
+def generate_text(model, start_string, num_generate=500, temperature=1.0):
+    input_eval = tf.expand_dims([char2idx[s] for s in start_string], 0)
+    text_generated = []
+
+    for _ in range(num_generate):
+        predictions = model(input_eval)
+        predictions = tf.squeeze(predictions, 0)
+        predictions = predictions / temperature
+        predicted_id = tf.random.categorical(predictions, num_samples=1)[-1, 0].numpy()
+        input_eval = tf.expand_dims([predicted_id], 0)
+        text_generated.append(idx2char[predicted_id])
+
+    return start_string + ''.join(text_generated)
+
+# 7. Generate text with different temperatures
+print("\n--- Generated text (temperature=1.0) ---")
+print(generate_text(model, "ROMEO: ", temperature=1.0))
+
+print("\n--- Generated text (temperature=0.5) ---")
+print(generate_text(model, "ROMEO: ", temperature=0.5))
+
+print("\n--- Generated text (temperature=1.5) ---")
+print(generate_text(model, "ROMEO: ", temperature=1.5))

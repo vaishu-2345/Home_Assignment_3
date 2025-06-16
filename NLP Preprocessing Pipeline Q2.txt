@@ -1,0 +1,31 @@
+import spacy
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+import nltk
+
+# Download stopwords only
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+
+# Load spaCy English model
+!python -m spacy download en_core_web_sm
+nlp = spacy.load("en_core_web_sm")
+
+# Sentence to process
+sentence = "NLP techniques are used in virtual assistants like Alexa and Siri."
+
+# Step 1: Tokenize using spaCy
+doc = nlp(sentence)
+tokens = [token.text for token in doc]
+
+# Step 2: Remove stopwords (NLTK)
+filtered_tokens = [word for word in tokens if word.lower() not in stop_words and word.isalpha()]
+
+# Step 3: Apply stemming (NLTK)
+stemmer = PorterStemmer()
+stemmed = [stemmer.stem(word) for word in filtered_tokens]
+
+# Output
+print("1. Original Tokens:", tokens)
+print("2. Tokens Without Stopwords:", filtered_tokens)
+print("3. Stemmed Words:", stemmed)
